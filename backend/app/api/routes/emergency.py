@@ -1,5 +1,6 @@
 """
 Emergency assistance and nearby emergency provider routing.
+Clearly distinguishes general public emergency numbers from hospital-specific lines.
 """
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -32,7 +33,7 @@ def trigger_emergency(
 ):
     patient = db.query(Patient).filter(Patient.user_id == user.id).first()
     if not patient:
-        raise HTTPException(status_code=400, detail="Only registered patients can trigger SOS")
+        raise HTTPException(status_code=400, detail="Only registered patients can trigger emergency notices")
 
     req = EmergencyRequest(
         patient_id=patient.id,
@@ -52,7 +53,7 @@ def trigger_emergency(
         "status": "active",
         "emergency_helpline": "108",
         "ambulance_helpline": "102",
-        "message": "Emergency broadcast initiated. Responders alerted.",
+        "message": "Emergency contact notification logged. Please dial 108 or hospital emergency numbers directly.",
     }
 
 
@@ -81,29 +82,60 @@ def list_emergency_requests(
 
 @router.get("/nearby-providers")
 def get_nearby_emergency_providers(city: str = "Greater Noida", db: Session = Depends(get_db)):
-    """Fast directory of verified emergency response centres and ambulance hubs."""
+    """
+    Directory of official emergency response helplines and hospital emergency lines.
+    Clearly distinguishes general public emergency helplines from hospital-specific lines.
+    """
     providers = db.query(Provider).filter(
-        Provider.provider_type.in_(["Hospital", "Government Hospital", "Ambulance", "CHC"])
+        Provider.provider_type.in_(["Hospital", "Government Hospital", "Ambulance"])
     ).limit(10).all()
 
-    # Always return reliable emergency national helpline numbers
-    helplines = [
-        {"name": "National Emergency Number", "phone": "112", "type": "National"},
-        {"name": "Ambulance Service", "phone": "108", "type": "Ambulance"},
-        {"name": "Pregnant Women & Infant Ambulance", "phone": "102", "type": "Maternal"},
-        {"name": "Disaster Management Services", "phone": "1078", "type": "Disaster"},
+    # General Public Emergency Helplines
+    general_helplines = [
+        {"name": "National Ambulance Service", "phone": "108", "category": "General Emergency", "notes": "Toll-free 24x7 for all medical emergencies"},
+        {"name": "Maternal & Infant Ambulance", "phone": "102", "category": "Maternal & Child", "notes": "Free transport for pregnant women & infants"},
+        {"name": "National Emergency Integrated", "phone": "112", "category": "Integrated Services", "notes": "Single emergency response number"},
+        {"name": "District Emergency Helpline", "phone": "18004192211", "category": "District Administration", "notes": "Gautam Buddha Nagar emergency helpline"},
+        {"name": "NHM State Health Helpline", "phone": "1800-180-1104", "category": "Health Support", "notes": "National Health Mission Uttar Pradesh"},
+        {"name": "Government Hospital Helpline", "phone": "1800-180-5145", "category": "Govt Hospital Support", "notes": "Subject to periodic verification with district portal"},
+    ]
+
+    # Hospital-Specific Emergency Contacts
+    hospital_specific = [
+        {
+            "hospital": "Government Institute of Medical Sciences (GIMS), Kasna",
+            "department": "Emergency Desk",
+            "phone": "7303884229",
+            "type": "Hospital Emergency",
+        },
+        {
+            "hospital": "Government Institute of Medical Sciences (GIMS), Kasna",
+            "department": "Hospital Ambulance",
+            "phone": "9667993869",
+            "type": "Hospital Ambulance",
+        },
+        {
+            "hospital": "Max Multi Speciality Hospital, Noida",
+            "department": "Hospital Helpline",
+            "phone": "01206629999",
+            "type": "Hospital Direct",
+        },
     ]
 
     return {
-        "helplines": helplines,
+        "general_helplines": general_helplines,
+        "helplines": general_helplines,  # compatibility alias
+        "hospital_specific": hospital_specific,
         "providers": [
             {
                 "id": p.id,
                 "name": p.name,
                 "provider_type": p.provider_type,
                 "address": p.address,
-                "phone": p.phone or "108",
+                "phone": p.phone,
                 "city": p.city,
+                "capacity": p.capacity,
+                "source_url": p.source_url,
             }
             for p in providers
         ],

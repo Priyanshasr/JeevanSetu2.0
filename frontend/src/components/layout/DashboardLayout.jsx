@@ -11,7 +11,9 @@ import Avatar from '../ui/Avatar'
 
 const navByRole = {
   patient: [
-    { icon: LayoutDashboard, label: 'Dashboard', tab: 'discovery' },
+    { icon: LayoutDashboard, label: 'Facility Discovery', tab: 'discovery' },
+    { icon: AlertTriangle, label: 'Emergency Helplines', tab: 'emergency' },
+    { icon: Building2, label: 'Govt Authorities & HMIS', tab: 'authorities' },
     { icon: FileText, label: 'My Records', tab: 'records' },
     { icon: Calendar, label: 'Appointments', tab: 'appointments' },
     { icon: Shield, label: 'Gov. Schemes', tab: 'schemes' },

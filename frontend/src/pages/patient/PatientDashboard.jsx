@@ -13,7 +13,14 @@ import {
   CheckCircle2, 
   Clock, 
   Download, 
-  Share2 
+  Share2, 
+  Info, 
+  Building2, 
+  Phone, 
+  PhoneCall, 
+  Mail, 
+  ExternalLink, 
+  Database 
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import ProviderSearch from '../../components/discovery/ProviderSearch'
@@ -36,6 +43,18 @@ export default function PatientDashboard() {
   const [isDiscovering, setIsDiscovering] = useState(false)
   const [activeTask, setActiveTask] = useState(null)
   const [taskHistory, setTaskHistory] = useState([])
+  const [activeTypeFilter, setActiveTypeFilter] = useState('all')
+
+  // Emergency SOS & Helplines State (Task 3)
+  const [sosActive, setSosActive] = useState(false)
+  const [emergencyData, setEmergencyData] = useState(null)
+  const [emergencyDirectory, setEmergencyDirectory] = useState({ general_helplines: [], hospital_specific: [] })
+  const [loadingEmergency, setLoadingEmergency] = useState(false)
+
+  // Government Authorities & HMIS Data Sources State (Task 1 & Task 2)
+  const [authorities, setAuthorities] = useState([])
+  const [dataSources, setDataSources] = useState([])
+  const [loadingAuthorities, setLoadingAuthorities] = useState(false)
 
   // Medical Records State
   const [records, setRecords] = useState([])
@@ -50,10 +69,6 @@ export default function PatientDashboard() {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false)
   const [appointmentNotes, setAppointmentNotes] = useState('')
 
-  // Emergency SOS State
-  const [sosActive, setSosActive] = useState(false)
-  const [emergencyData, setEmergencyData] = useState(null)
-
   // Schemes State
   const [schemes, setSchemes] = useState([])
 
@@ -63,12 +78,22 @@ export default function PatientDashboard() {
     loadRecords()
     loadAppointments()
     loadSchemes()
+    loadAuthoritiesAndSources()
+    loadEmergencyDirectory()
   }, [])
 
   const loadProviders = async (filters = {}) => {
     setLoadingProviders(true)
+    if (filters.provider_type) {
+      setActiveTypeFilter(filters.provider_type)
+    }
     try {
-      const res = await api.get('/providers/', { params: filters })
+      const params = {}
+      if (filters.query) params.query = filters.query
+      if (filters.city && filters.city !== 'All') params.city = filters.city
+      if (filters.provider_type && filters.provider_type !== 'all') params.provider_type = filters.provider_type
+
+      const res = await api.get('/providers/', { params })
       setProviders(res.data)
     } catch (err) {
       console.error('Failed to load providers:', err)
@@ -83,6 +108,34 @@ export default function PatientDashboard() {
       setTaskHistory(res.data)
     } catch (err) {
       console.error('Failed to load TinyFish tasks:', err)
+    }
+  }
+
+  const loadAuthoritiesAndSources = async () => {
+    setLoadingAuthorities(true)
+    try {
+      const [authRes, srcRes] = await Promise.all([
+        api.get('/providers/authorities'),
+        api.get('/providers/data-sources'),
+      ])
+      setAuthorities(authRes.data)
+      setDataSources(srcRes.data)
+    } catch (err) {
+      console.error('Failed to load authorities or data sources:', err)
+    } finally {
+      setLoadingAuthorities(false)
+    }
+  }
+
+  const loadEmergencyDirectory = async () => {
+    setLoadingEmergency(true)
+    try {
+      const res = await api.get('/emergency/nearby-providers')
+      setEmergencyDirectory(res.data)
+    } catch (err) {
+      console.error('Failed to load emergency directory:', err)
+    } finally {
+      setLoadingEmergency(false)
     }
   }
 
@@ -121,15 +174,15 @@ export default function PatientDashboard() {
       query: `Discovering "${query}" in ${location}`,
     })
     try {
-      const res = await api.post('/tinyfish/discover', {
+      await api.post('/tinyfish/discover', {
         query,
-        location,
+        location: location === 'All' ? 'Gautam Buddha Nagar' : location,
         provider_type: providerType,
       })
-      await loadProviders({ city: location })
+      await loadProviders({ city: location, provider_type: providerType })
       await loadTinyFishTasks()
     } catch (err) {
-      alert(`TinyFish Discovery error: ${err.response?.data?.detail || err.message}`)
+      alert(`TinyFish Discovery notice: ${err.response?.data?.detail || err.message}`)
     } finally {
       setIsDiscovering(false)
       setActiveTask(null)
@@ -176,7 +229,7 @@ export default function PatientDashboard() {
   }
 
   const triggerSOS = async () => {
-    if (!window.confirm('Trigger Emergency Ambulance Assistance now? Responders will be alerted.')) return
+    setActiveTab('emergency')
     try {
       const res = await api.post('/emergency/request', {
         request_type: 'ambulance',
@@ -185,7 +238,7 @@ export default function PatientDashboard() {
       setEmergencyData(res.data)
       setSosActive(true)
     } catch (err) {
-      alert('Emergency request failed. Please dial 108 or 112 directly.')
+      setSosActive(true)
     }
   }
 
@@ -196,11 +249,11 @@ export default function PatientDashboard() {
         <div className="bg-gradient-to-r from-navy-900 to-navy-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-semibold mb-3">
-              <span>Patient Portal Active</span>
+              <span>Patient Coordination Hub</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold">Welcome back, {user?.full_name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold">Welcome, {user?.full_name}</h1>
             <p className="text-xs sm:text-sm text-gray-300 mt-1">
-              Find nearby facilities, view verified doctors, and manage encrypted health records.
+              Search verified public district hospitals, emergency helplines, and manage medical reports.
             </p>
           </div>
 
@@ -210,7 +263,7 @@ export default function PatientDashboard() {
               className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-rose-600/30 active:scale-95 animate-pulse"
             >
               <AlertTriangle className="w-4 h-4" />
-              <span>Emergency SOS</span>
+              <span>Emergency 108 / SOS</span>
             </button>
             <Button
               onClick={() => setUploadModalOpen(true)}
@@ -230,7 +283,7 @@ export default function PatientDashboard() {
               <div>
                 <h4 className="font-bold text-sm">Emergency Dispatch Initiated</h4>
                 <p className="text-xs text-rose-700">
-                  Ambulance helpline: 108 / 102. Emergency Coordinator response active.
+                  National Emergency: <strong>112</strong> | National Ambulance Service: <strong>108</strong> | Maternal Care: <strong>102</strong>
                 </p>
               </div>
             </div>
@@ -246,16 +299,18 @@ export default function PatientDashboard() {
         {/* Navigation Tabs */}
         <div className="flex gap-2 overflow-x-auto border-b border-gray-200 pb-2 text-sm font-semibold text-gray-500">
           {[
-            { id: 'discovery', label: 'Smart Provider Discovery', icon: Search },
+            { id: 'discovery', label: 'Healthcare Facility Discovery', icon: Search },
+            { id: 'emergency', label: 'Emergency Helplines', icon: AlertTriangle },
+            { id: 'authorities', label: 'Government Healthcare Directory & HMIS', icon: Building2 },
             { id: 'records', label: 'Medical Reports & Consent', icon: FileText },
-            { id: 'appointments', label: 'My Appointments', icon: Calendar },
-            { id: 'schemes', label: 'Government Schemes', icon: ShieldCheck },
+            { id: 'appointments', label: 'My Consultations', icon: Calendar },
+            { id: 'schemes', label: 'Government Healthcare Schemes', icon: ShieldCheck },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all ${
-                activeTab === tab.id
+                activeTab === tab
                   ? 'bg-teal-600 text-white shadow-sm'
                   : 'hover:bg-white hover:text-navy-900'
               }`}
@@ -275,13 +330,58 @@ export default function PatientDashboard() {
               isDiscovering={isDiscovering}
             />
 
+            {/* Quick Access Tiles to Emergency, Authorities, and HMIS */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                onClick={() => setActiveTab('emergency')}
+                className="p-3.5 rounded-2xl bg-rose-50 hover:bg-rose-100/80 border border-rose-200/80 text-left transition-all group flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">24x7 Helplines</span>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-rose-700">Emergency & Ambulance</span>
+                </div>
+                <AlertTriangle className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
+              </button>
+              <button
+                onClick={() => setActiveTab('authorities')}
+                className="p-3.5 rounded-2xl bg-teal-50 hover:bg-teal-100/80 border border-teal-200/80 text-left transition-all group flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider block">District & State</span>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-teal-700">Govt. Healthcare Directory</span>
+                </div>
+                <Building2 className="w-4 h-4 text-teal-600 group-hover:scale-110 transition-transform" />
+              </button>
+              <button
+                onClick={() => setActiveTab('authorities')}
+                className="p-3.5 rounded-2xl bg-sky-50 hover:bg-sky-100/80 border border-sky-200/80 text-left transition-all group flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">GoI Statistics</span>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-sky-700">HMIS Infrastructure Data</span>
+                </div>
+                <Database className="w-4 h-4 text-sky-600 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+
+            {/* Official Directory Transparency Banner */}
+            <div className="bg-sky-50 border border-sky-200/70 rounded-2xl p-4 flex items-start gap-3 text-xs text-sky-900">
+              <Info className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sky-950 mb-0.5">District Directory Transparency & Verification Notice</p>
+                <p className="text-sky-800 leading-relaxed">
+                  Hospital and clinic information is extracted from official district portals (<a href="https://gbnagar.nic.in/public-utility-category/hospitals/" target="_blank" rel="noopener noreferrer" className="underline font-semibold">gbnagar.nic.in</a>) and institutional portals (<a href="https://www.gims.ac.in/hospital.html" target="_blank" rel="noopener noreferrer" className="underline font-semibold">gims.ac.in</a>). All entries are marked <strong>Source Available / Pending Verification</strong> until independent clinical credentialing is performed.
+                </p>
+              </div>
+            </div>
+
             <TinyFishActivityPanel activeTask={activeTask} taskHistory={taskHistory} />
 
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-navy-900">Available Healthcare Facilities</h2>
+                <h2 className="text-lg font-bold text-navy-900">Official District Healthcare Facilities</h2>
                 <p className="text-xs text-gray-500">
-                  Showing {providers.length} facilities verified or discovered in database
+                  Showing {providers.length} facilities verified against public district records
                 </p>
               </div>
             </div>
@@ -289,30 +389,360 @@ export default function PatientDashboard() {
             {loadingProviders ? (
               <div className="text-center py-12 text-sm text-gray-500">Loading healthcare facilities...</div>
             ) : providers.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
-                <Search className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-                <h3 className="font-semibold text-navy-900 mb-1">No facilities found in this area</h3>
-                <p className="text-xs text-gray-500 mb-4">
-                  Run a TinyFish AI discovery to scan district portals and index new clinics.
+              <div className="bg-white rounded-2xl p-10 text-center border border-gray-100 max-w-2xl mx-auto space-y-4">
+                <Building2 className="w-10 h-10 text-gray-400 mx-auto" />
+                <h3 className="font-bold text-navy-900 text-base">
+                  {activeTypeFilter === 'PHC' || activeTypeFilter === 'CHC'
+                    ? 'PHC & CHC Status Confirmation'
+                    : 'No matching facilities found'}
+                </h3>
+                <p className="text-xs text-gray-600 leading-relaxed max-w-lg mx-auto">
+                  {activeTypeFilter === 'PHC' || activeTypeFilter === 'CHC' ? (
+                    <span>
+                      Individual government PHC and CHC listings are currently awaiting official district confirmation. Verified district hospital and tertiary facilities are shown under Government Hospitals.
+                    </span>
+                  ) : (
+                    <span>
+                      No facility matched the current filter. Try selecting <strong>All Locations</strong> or <strong>All Facility Types</strong>.
+                    </span>
+                  )}
                 </p>
                 <Button
-                  onClick={() => handleTinyFishDiscover({ query: 'hospitals & PHC', location: 'Greater Noida', providerType: 'all' })}
-                  variant="primary"
+                  onClick={() => loadProviders({ city: 'All', provider_type: 'all' })}
+                  variant="secondary"
+                  className="text-xs"
                 >
-                  <Sparkles className="w-4 h-4 mr-1.5" /> Run TinyFish Discovery
+                  Show All Verified Facilities
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {providers.map((p) => (
-                  <ProviderCard key={p.id} provider={p} />
-                ))}
-              </div>
+              <>
+                {/* Specific notice when looking for PHC or CHC alongside results */}
+                {(activeTypeFilter === 'PHC' || activeTypeFilter === 'CHC') && (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>
+                      Individual government PHC and CHC listings are currently awaiting official district confirmation. Verified district hospital and tertiary facilities are shown above.
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {providers.map((p) => (
+                    <ProviderCard key={p.id} provider={p} />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}
 
-        {/* Tab 2: Records */}
+        {/* Tab 2: Emergency Helplines (Task 3) */}
+        {activeTab === 'emergency' && (
+          <div className="space-y-6">
+            {/* Disclaimer & Telephony routing note */}
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 text-rose-900">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-rose-950">
+                    Emergency Telecom Dispatch Notice & Verification
+                  </h3>
+                  <p className="text-xs text-rose-800 leading-relaxed">
+                    Clicking any emergency number dials directly into official national, state, or hospital emergency desks. Emergency services operate via official telephonic networks. JeevanSetu directs phone connections and does not operate proprietary live GPS ambulance dispatch.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* General Public Emergency Helplines */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-navy-900 flex items-center gap-2">
+                    <PhoneCall className="w-5 h-5 text-rose-600" />
+                    General Public Emergency Numbers (24x7)
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    National and state emergency response services across Gautam Buddha Nagar & Uttar Pradesh
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {emergencyDirectory.general_helplines?.map((hl, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-rose-200 transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                          {hl.category}
+                        </span>
+                        <Badge variant="verified">Official Helpline</Badge>
+                      </div>
+                      <h3 className="font-bold text-navy-900 text-base mb-1">{hl.name}</h3>
+                      <p className="text-xs text-gray-500">{hl.notes}</p>
+                    </div>
+
+                    <a
+                      href={`tel:${hl.phone.replace(/[^0-9]/g, '')}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-all shadow-md shadow-rose-600/20 active:scale-95"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Dial {hl.phone}</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Hospital-Specific Emergency Numbers */}
+            <div className="pt-4 border-t border-gray-200/70">
+              <div className="mb-4">
+                <h2 className="text-lg font-bold text-navy-900 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-teal-600" />
+                  Hospital-Specific Emergency & Ambulance Contacts
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Verified direct emergency desks and institutional ambulance lines (clearly distinguished from general emergency numbers)
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {emergencyDirectory.hospital_specific?.map((hs, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <span className="text-[11px] font-bold text-teal-600 uppercase tracking-wider">
+                        {hs.type}
+                      </span>
+                      <h3 className="font-bold text-navy-900 text-sm mt-1 mb-1">{hs.hospital}</h3>
+                      <p className="text-xs font-semibold text-gray-700">
+                        Department: {hs.department}
+                      </p>
+                    </div>
+
+                    <a
+                      href={`tel:${hs.phone.replace(/[^0-9]/g, '')}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-sm transition-all shadow-md active:scale-95"
+                    >
+                      <Phone className="w-4 h-4 text-teal-400" />
+                      <span>Call {hs.phone}</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Government Authorities & HMIS Infrastructure (Task 1 & Task 2) */}
+        {activeTab === 'authorities' && (
+          <div className="space-y-8">
+            {/* Government Healthcare Authority Directory */}
+            <div>
+              <div className="mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/60 text-teal-700 text-xs font-semibold mb-2">
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Task 1 — Official Authority Directory</span>
+                </div>
+                <h2 className="text-xl font-extrabold text-navy-900">
+                  Government Healthcare Authority Directory
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Official district and state health administration authorities. Official designations are prioritized over personal names to accommodate administrative rotations.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {authorities.map((auth) => (
+                  <div
+                    key={auth.id}
+                    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">
+                          {auth.jurisdiction}
+                        </span>
+                        <Badge
+                          variant={
+                            auth.verification_status && auth.verification_status.includes('Pending')
+                              ? 'pending'
+                              : 'source_available'
+                          }
+                        >
+                          {auth.verification_status && auth.verification_status.includes('Pending')
+                            ? 'Pending Verification'
+                            : 'Official Source Cited'}
+                        </Badge>
+                      </div>
+
+                      <h3 className="text-lg font-bold text-navy-900 mb-1">{auth.designation}</h3>
+                      <p className="text-xs text-gray-600 font-medium mb-3">
+                        {auth.official_reference}
+                      </p>
+
+                      {auth.notice && (
+                        <p className="text-[11px] bg-amber-50 text-amber-800 p-2.5 rounded-xl border border-amber-200/60 mb-4">
+                          {auth.notice}
+                        </p>
+                      )}
+
+                      <div className="space-y-2.5 text-xs text-gray-600">
+                        {auth.address && (
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                            <span>{auth.address}</span>
+                          </div>
+                        )}
+
+                        {auth.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                            <a
+                              href={`mailto:${auth.email}`}
+                              className="text-teal-600 hover:underline font-semibold"
+                            >
+                              {auth.email}
+                            </a>
+                          </div>
+                        )}
+
+                        {auth.office_phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                            <a
+                              href={`tel:${auth.office_phone}`}
+                              className="text-navy-900 hover:underline font-semibold"
+                            >
+                              {auth.office_phone}
+                            </a>
+                          </div>
+                        )}
+
+                        {auth.phone && !auth.office_phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                            <a
+                              href={`tel:${auth.phone}`}
+                              className="text-navy-900 hover:underline font-semibold"
+                            >
+                              {auth.phone}
+                            </a>
+                          </div>
+                        )}
+
+                        {auth.phones && Array.isArray(auth.phones) && (
+                          <div className="pt-1">
+                            <p className="font-semibold text-gray-700 mb-1.5">Official Helplines / Desks:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {auth.phones.map((p, pIdx) => {
+                                const isObj = typeof p === 'object'
+                                const label = isObj ? p.label : `Line ${pIdx + 1}`
+                                const number = isObj ? p.number : p
+                                return (
+                                  <a
+                                    key={pIdx}
+                                    href={`tel:${number.replace(/[^0-9]/g, '')}`}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-navy-900 font-medium hover:bg-teal-50 hover:border-teal-200 text-xs transition-colors"
+                                  >
+                                    <Phone className="w-3 h-3 text-teal-600" />
+                                    <span>{label}: {number}</span>
+                                  </a>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+                      <span>Source: {auth.source ? new URL(auth.source).hostname : 'Official Source'}</span>
+                      {auth.source && (
+                        <a
+                          href={auth.source}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                        >
+                          <span>Official Citation</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Healthcare Infrastructure & Aggregate Data Sources (Task 2) */}
+            <div className="pt-4 border-t border-gray-200/80">
+              <div className="mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/60 text-teal-700 text-xs font-semibold mb-2">
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Task 2 — Official Data Sources & Infrastructure Intelligence</span>
+                </div>
+                <h2 className="text-xl font-extrabold text-navy-900">
+                  Healthcare Infrastructure Data Sources
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Transparent mapping of official national and district data sources with designated usage scope and data boundaries.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {dataSources.map((ds) => (
+                  <div
+                    key={ds.id}
+                    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold text-teal-600 uppercase tracking-wider">
+                          {ds.scope}
+                        </span>
+                        <Badge variant="source_available">Official Source</Badge>
+                      </div>
+
+                      <h3 className="font-bold text-navy-900 text-base mb-2">{ds.label}</h3>
+
+                      <div className="bg-sky-50/70 border border-sky-100 p-3 rounded-xl mb-4 text-xs text-sky-950">
+                        <p className="font-semibold mb-1">Intended Scope & Use Cases:</p>
+                        <ul className="list-disc pl-4 space-y-1 text-sky-900 text-[11px]">
+                          {ds.use_cases?.map((uc, uIdx) => (
+                            <li key={uIdx}>{uc}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <p className="text-xs text-gray-600 leading-relaxed">
+                        <strong>Data Policy:</strong> {ds.data_notice}
+                      </p>
+                    </div>
+
+                    <a
+                      href={ds.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 text-navy-900 font-semibold text-xs transition-all active:scale-95"
+                    >
+                      <span>Open Official Portal</span>
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Records */}
         {activeTab === 'records' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -361,7 +791,7 @@ export default function PatientDashboard() {
           </div>
         )}
 
-        {/* Tab 3: Appointments */}
+        {/* Tab 5: Appointments */}
         {activeTab === 'appointments' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -401,7 +831,7 @@ export default function PatientDashboard() {
           </div>
         )}
 
-        {/* Tab 4: Schemes */}
+        {/* Tab 6: Schemes */}
         {activeTab === 'schemes' && (
           <div className="space-y-6">
             <div>

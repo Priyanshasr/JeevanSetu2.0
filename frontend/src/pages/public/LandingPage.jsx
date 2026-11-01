@@ -30,12 +30,12 @@ export default function LandingPage() {
   }
 
   const categories = [
-    { name: 'Government Hospitals', count: '1,200+ Verified', icon: Building2, desc: 'District, Sub-district, & Teaching Hospitals' },
-    { name: 'Primary Health Centres (PHC)', count: '4,500+ Rural Hubs', icon: HeartPulse, desc: 'Block & village essential primary care' },
-    { name: 'Qualified Doctors & Specialists', count: '8,000+ Specialists', icon: Stethoscope, desc: 'MBBS, MD, MS registered specialists' },
-    { name: 'Community Health Centres (CHC)', count: '2,100+ Facilities', icon: Building2, desc: 'Secondary referral care with inpatient beds' },
-    { name: 'Emergency & Ambulance (108/102)', count: '24x7 Live Routing', icon: Ambulance, desc: 'Immediate trauma & ALS/BLS responders' },
-    { name: 'Ayushman Bharat Centres', count: '10,000+ Empanelled', icon: ShieldCheck, desc: 'Cashless treatment under PM-JAY' },
+    { name: 'Government District Hospitals', count: 'Official District Sourced', icon: Building2, desc: 'District & state medical institutes (GIMS Kasna & Sec-30)' },
+    { name: 'Primary Health Centres (PHC)', count: 'Awaiting District Confirmation', icon: HeartPulse, desc: 'Block & village essential primary care units' },
+    { name: 'Qualified Doctors & Specialists', count: 'Credential Auditing Active', icon: Stethoscope, desc: 'Registered medical practitioners & consultants' },
+    { name: 'Community Health Centres (CHC)', count: 'Awaiting District Confirmation', icon: Building2, desc: 'Secondary block-level referral facilities' },
+    { name: 'National Emergency Ambulance (108/102)', count: 'Official 24x7 Helplines', icon: Ambulance, desc: 'Immediate trauma & ALS/BLS ambulance transit' },
+    { name: 'Ayushman Bharat (PM-JAY)', count: 'Official Empanelled Scheme', icon: ShieldCheck, desc: 'Cashless healthcare at empannelled hospitals' },
   ]
 
   return (
@@ -98,20 +98,20 @@ export default function LandingPage() {
         {/* Stats Strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-center border-y border-gray-200/80 py-8">
           <div>
-            <div className="text-3xl font-extrabold text-navy-900">25,000+</div>
-            <div className="text-xs text-gray-500 font-medium mt-1">Verified Public Facilities</div>
+            <div className="text-3xl font-extrabold text-navy-900">Official</div>
+            <div className="text-xs text-gray-500 font-medium mt-1">District Directory Sourced</div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-teal-600">100% Live</div>
+            <div className="text-3xl font-extrabold text-teal-600">500 Beds</div>
+            <div className="text-xs text-gray-500 font-medium mt-1">GIMS Tertiary Facility</div>
+          </div>
+          <div>
+            <div className="text-3xl font-extrabold text-navy-900">108 / 112</div>
+            <div className="text-xs text-gray-500 font-medium mt-1">National Emergency Numbers</div>
+          </div>
+          <div>
+            <div className="text-3xl font-extrabold text-teal-600">Live Sync</div>
             <div className="text-xs text-gray-500 font-medium mt-1">TinyFish Monitored Updates</div>
-          </div>
-          <div>
-            <div className="text-3xl font-extrabold text-navy-900">₹0 Fee</div>
-            <div className="text-xs text-gray-500 font-medium mt-1">Free for Rural Citizens</div>
-          </div>
-          <div>
-            <div className="text-3xl font-extrabold text-teal-600">24x7</div>
-            <div className="text-xs text-gray-500 font-medium mt-1">Instant Emergency Routing</div>
           </div>
         </div>
       </section>
@@ -194,7 +194,7 @@ export default function LandingPage() {
             <div className="space-y-2 text-emerald-400">
               <p>&gt; tinyfish.search(query="CHC & Trauma Care Dadri", location="Greater Noida")</p>
               <p className="text-gray-400">&gt; Status 200 OK — 10 matching government sources resolved.</p>
-              <p>&gt; tinyfish.fetch(urls=["https://gims.ac.in", "https://up-health.info/chc-dadri"])</p>
+              <p>&gt; tinyfish.fetch(urls=["https://www.gims.ac.in/hospital.html", "https://gbnagar.nic.in/public-utility-category/hospitals/"])</p>
               <p className="text-gray-400">&gt; Parsing clean Markdown content via Chromium headless instance...</p>
               <p className="text-teal-300">&gt; Structured Extraction Completed: 2 Verified Facilities Normalized.</p>
               <p className="text-amber-300">&gt; PostgreSQL Synced — Source URLs Preserved.</p>
