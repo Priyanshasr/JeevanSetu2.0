@@ -1,0 +1,41 @@
+services:
+  # 1. FastAPI Python Backend Web Service
+  - type: web
+    name: jeevansetu-api
+    runtime: python
+    plan: free
+    region: virginia
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TINYFISH_API_KEY
+        value: sk-tinyfish-Nc7rbyaKs0NF6DVxRCTLa3agC2xkCWZU
+      - key: DATABASE_URL
+        value: sqlite:///./jeevansetu.db
+
+  # 2. React Vite Frontend Static Site
+  - type: web
+    name: jeevansetu-web
+    runtime: static
+    plan: free
+    region: virginia
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: jeevansetu-api
+          property: host
