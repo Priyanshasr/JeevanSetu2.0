@@ -1,4 +1,11 @@
 # JeevanSetu 2.0 — Healthcare Within Everyone's Reach
+<img width="950" height="563" alt="Screenshot 2026-11-01 153127" src="https://github.com/user-attachments/assets/b27eea19-7cf6-40d9-b45b-f6b2b3b49b45" />
+<img width="916" height="561" alt="Screenshot 2026-11-01 164342" src="https://github.com/user-attachments/assets/78f219fd-ca48-4a7f-8af3-c8ce98e25e05" />
+<img width="952" height="565" alt="Screenshot 2026-11-01 164353" src="https://github.com/user-attachments/assets/7bb7d619-2dc1-4e0b-9d7e-71dc5d12d8ec" />
+<img width="953" height="549" alt="Screenshot 2026-11-01 164429" src="https://github.com/user-attachments/assets/e41a5cf7-de5a-412c-b319-16d7dd12aeeb" />
+<img width="949" height="556" alt="Screenshot 2026-11-01 164615" src="https://github.com/user-attachments/assets/55771854-52ee-4231-9382-493bf422b83a" />
+<img width="953" height="451" alt="Screenshot 2026-11-01 164628" src="https://github.com/user-attachments/assets/9bf1627d-7b08-48b8-ac75-f9c361df2d8e" />
+
 
 <div align="center">
   <img src="docs/banner.png" alt="JeevanSetu 2.0" width="800" />
