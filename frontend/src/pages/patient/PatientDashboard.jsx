@@ -190,7 +190,7 @@ export default function PatientDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
       <div className="space-y-6">
         {/* Welcome Header */}
         <div className="bg-gradient-to-r from-navy-900 to-navy-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">

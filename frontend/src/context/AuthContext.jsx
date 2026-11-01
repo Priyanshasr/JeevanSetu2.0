@@ -4,18 +4,42 @@ import api from '../config/api'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('js2_user')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
   const [token, setToken] = useState(() => localStorage.getItem('js2_token'))
   const [loading, setLoading] = useState(true)
 
   const restoreSession = useCallback(async (savedToken) => {
-    if (!savedToken) { setLoading(false); return }
+    if (!savedToken) {
+      setLoading(false)
+      return
+    }
     try {
-      const { data } = await api.get('/auth/me')
+      const { data } = await api.get('/auth/me', {
+        headers: { Authorization: `Bearer ${savedToken}` }
+      })
       setUser(data)
-    } catch {
-      localStorage.removeItem('js2_token')
-      setToken(null)
+      localStorage.setItem('js2_user', JSON.stringify(data))
+    } catch (err) {
+      console.warn('Session restoration failed:', err)
+      // Keep user from localStorage if network is temporarily unreachable
+      const cached = localStorage.getItem('js2_user')
+      if (cached) {
+        try {
+          setUser(JSON.parse(cached))
+        } catch {
+          localStorage.removeItem('js2_token')
+          localStorage.removeItem('js2_user')
+          setToken(null)
+          setUser(null)
+        }
+      }
     } finally {
       setLoading(false)
     }
@@ -23,41 +47,57 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     restoreSession(token)
-  }, []) // eslint-disable-line
+  }, [restoreSession, token])
 
   const login = async (email, password) => {
-    const formData = new FormData()
-    formData.append('username', email)
-    formData.append('password', password)
-    const { data } = await api.post('/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    // Send clean JSON payload
+    const { data } = await api.post('/auth/login', {
+      email: email.trim(),
+      password: password,
     })
     const accessToken = data.access_token
+    const userData = data.user
     localStorage.setItem('js2_token', accessToken)
+    localStorage.setItem('js2_user', JSON.stringify(userData))
     setToken(accessToken)
-    const meResp = await api.get('/auth/me', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    })
-    setUser(meResp.data)
-    return meResp.data
+    setUser(userData)
+    return userData
   }
 
   const register = async (userData) => {
     const { data } = await api.post('/auth/register', userData)
-    return data
+    if (data.access_token && data.user) {
+      localStorage.setItem('js2_token', data.access_token)
+      localStorage.setItem('js2_user', JSON.stringify(data.user))
+      setToken(data.access_token)
+      setUser(data.user)
+    }
+    return data.user || data
   }
 
   const logout = () => {
     localStorage.removeItem('js2_token')
+    localStorage.removeItem('js2_user')
     setToken(null)
     setUser(null)
-    window.location.href = '/'
+    window.location.href = '/login'
   }
 
   const isAuthenticated = !!token && !!user
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isAuthenticated, loading, role: user?.role }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        register,
+        logout,
+        isAuthenticated,
+        loading,
+        role: user?.role,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

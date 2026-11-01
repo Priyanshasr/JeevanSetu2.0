@@ -92,7 +92,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
       <div className="space-y-6">
         <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-4">
