@@ -29,6 +29,11 @@ app.add_middleware(
 def on_startup():
     print("[Startup] Initializing database tables...")
     create_tables()
+    try:
+        from app.db.seed import seed
+        seed()
+    except Exception as e:
+        print("[Startup] Seed notice:", e)
     print("[Startup] JeevanSetu 2.0 backend ready.")
 
 
