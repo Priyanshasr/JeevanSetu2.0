@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const getBaseUrl = () => {
-  let url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  let url = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://jeevansetu-api-68iw.onrender.com' : 'http://localhost:8000')
   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`
   }
